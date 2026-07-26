@@ -1,0 +1,12 @@
+package-as: RecruitRelay
+
+ignore:
+  - .editorconfig
+  - .gitattributes
+  - .github
+  - .gitignore
+  - assets
+  - CURSEFORGE.md
+  - package.bat
+  - tests
+  - tools

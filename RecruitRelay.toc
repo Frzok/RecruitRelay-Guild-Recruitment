@@ -1,0 +1,15 @@
+## Interface: 120007
+## Title: RecruitRelay: Guild Recruitment
+## Notes: Safe guild recruitment broadcasts with clickable Guild Finder links.
+## Notes-ruRU: Безопасные объявления о наборе в гильдию с кликабельными ссылками.
+## Author: Frzok
+## Version: 1.1.0
+## IconTexture: Interface\Icons\INV_Misc_GroupLooking
+## Category-enUS: Guild
+## Category-ruRU: Гильдия
+## SavedVariables: RecruitRelayDB
+
+Locale.lua
+Core.lua
+ProfileUI.lua
+UI.lua
