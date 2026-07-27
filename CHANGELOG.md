@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 — 2026-07-27
 
 - Added a one-click way to disable scheduled announcements from the send reminder.
 - Clearing announcements now also dismisses any pending message.
