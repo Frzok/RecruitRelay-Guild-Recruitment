@@ -22,10 +22,12 @@ Recruitment Helper or any other recruitment addon.
 - Channel rotation when more than one channel is selected.
 - Automatic pauses in combat, instances, raids, and while AFK.
 - A visible hardware-action button when a message is due.
+- Automatic queuing through MessageQueue when it is installed.
 - Russian and English interfaces.
 - No external addon dependencies.
-- A reusable guild profile for schedules, progress, contacts, links, and rules.
-- Visual recruitment selectors for days, roles, classes, and activities.
+- A reusable guild profile for schedules, progress, contacts, and links.
+- Modern dark interface with clear profile and recruitment sections.
+- Color-coded recruitment selectors for days, roles, classes, specializations, and activities.
 - Automatic guild roster counters.
 
 ## Message tokens
@@ -34,22 +36,18 @@ Recruitment Helper or any other recruitment addon.
 | --- | --- |
 | `$gname` | Current guild name |
 | `$glink` | Clickable Guild Finder link, or guild name as a fallback |
-| `$realm` | Current realm |
-| `$faction` | Player faction |
 | `$player` | Current character name |
-| `$online` / `$members` | Online and total guild members |
-| `$time` / `$date` | Current local time and date |
+| `$time` | Current local time |
 | `$raidtime` / `$schedule` | Manual raid time or generated schedule |
-| `$days` / `$starttime` / `$endtime` | Individual schedule values |
+| `$days` | Selected schedule days |
 | `$progress` | Guild progress |
 | `$requirements` | Recruitment requirements |
 | `$contact` / `$backupcontacts` / `$contacts` | Recruiter contacts |
 | `$discord` / `$website` / `$voice` | Community links and voice chat |
-| `$language` / `$timezone` / `$region` | Guild location information |
 | `$focus` / `$activities` | Guild focus and selected activities |
-| `$needs` / `$roles` / `$classes` | Generated recruitment needs |
+| `$needs` / `$roles` / `$classes` | Compact recruitment needs, including selected specializations |
 | `$priority` | Priority recruits |
-| `$age` / `$loot` / `$about` | Other guild profile information |
+| `$about` | Short guild description |
 
 The guild must have an active Guild Finder recruitment listing for `$glink` to
 be clickable.
@@ -67,11 +65,16 @@ token at the cursor.
 ## Why messages require a click
 
 World of Warcraft requires a hardware event for messages sent to public
-channels. RecruitRelay therefore reminds you when a message is due and displays
-a button. Clicking the button sends one line. A two-line message needs two
-clicks.
+channels. When the optional
+[MessageQueue](https://www.curseforge.com/wow/addons/messagequeue) addon is
+installed, RecruitRelay automatically queues a due announcement. It is sent on
+your next normal mouse, keyboard, or gamepad input without clicking a
+RecruitRelay button.
 
-RecruitRelay does not simulate input or bypass Blizzard restrictions.
+Without MessageQueue, RecruitRelay displays its own send button as a safe
+fallback. RecruitRelay does not simulate input or bypass Blizzard restrictions.
+Use **Disable announcements** to stop the timer and cancel a queued
+RecruitRelay action before it runs.
 
 ## Installation
 
@@ -82,6 +85,10 @@ World of Warcraft/_retail_/Interface/AddOns/
 ```
 
 Restart the game and enable **RecruitRelay: Guild Recruitment**.
+
+Install and enable **MessageQueue** as well to use automatic queuing. The addon
+continues to work without it, but public announcements then require the
+RecruitRelay send button.
 
 ## Commands
 

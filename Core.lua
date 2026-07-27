@@ -78,6 +78,7 @@ local defaults = {
 			demonhunter = false,
 			evoker = false,
 		},
+		specializations = {},
 		activities = {
 			raid = false,
 			mythicplus = false,
@@ -94,6 +95,38 @@ RR.classKeys = {
 	"shaman", "mage", "warlock", "monk", "druid", "demonhunter", "evoker",
 }
 RR.activityKeys = { "raid", "mythicplus", "pvp", "social" }
+
+RR.classIDs = {
+	warrior = 1,
+	paladin = 2,
+	hunter = 3,
+	rogue = 4,
+	priest = 5,
+	deathknight = 6,
+	shaman = 7,
+	mage = 8,
+	warlock = 9,
+	monk = 10,
+	druid = 11,
+	demonhunter = 12,
+	evoker = 13,
+}
+
+RR.specializationIDs = {
+	warrior = { 71, 72, 73 },
+	paladin = { 65, 66, 70 },
+	hunter = { 253, 254, 255 },
+	rogue = { 259, 260, 261 },
+	priest = { 256, 257, 258 },
+	deathknight = { 250, 251, 252 },
+	shaman = { 262, 263, 264 },
+	mage = { 62, 63, 64 },
+	warlock = { 265, 266, 267 },
+	monk = { 268, 270, 269 },
+	druid = { 102, 103, 104, 105 },
+	demonhunter = { 577, 581, 1480 },
+	evoker = { 1467, 1468, 1473 },
+}
 
 local channelDefinitions = {
 	{ key = "trade", zoneChannelID = 2, label = function() return L.TRADE end },
@@ -195,6 +228,29 @@ function RR:ResetTimer(silent)
 	end
 end
 
+function RR:SetAnnouncementsEnabled(enabled, silent)
+	self.db.enabled = enabled and true or false
+	self.pendingSend = nil
+	self.ready = false
+
+	if self.db.enabled then
+		self.db.nextDue = self:GetNow() + (self.db.interval * 60)
+	else
+		self.db.nextDue = 0
+	end
+
+	if self.ui and self.ui.enabled then
+		self.ui.enabled:SetChecked(self.db.enabled)
+	end
+
+	self.transientStatus = nil
+	self:UpdateAllUI()
+
+	if not silent then
+		self:Print(self.db.enabled and L.ANNOUNCEMENTS_ENABLED or L.ANNOUNCEMENTS_DISABLED)
+	end
+end
+
 function RR:GetGuildName()
 	if not IsInGuild() then
 		return L.NO_GUILD
@@ -227,6 +283,81 @@ function RR:GetSelectedLabels(source, keys, prefix)
 	return selected
 end
 
+function RR:GetAnnouncementLabel(prefix, key, fallbackPrefix)
+	return L[prefix .. key:upper()] or L[fallbackPrefix .. key:upper()] or key
+end
+
+function RR:GetClassSpecializations(classKey)
+	local classID = self.classIDs[classKey]
+	local result = {}
+
+	if classID and C_SpecializationInfo
+		and C_SpecializationInfo.GetNumSpecializationsForClassID
+		and C_SpecializationInfo.GetSpecializationInfo
+	then
+		local count = C_SpecializationInfo.GetNumSpecializationsForClassID(classID) or 0
+		for index = 1, count do
+			local id, name, _, icon = C_SpecializationInfo.GetSpecializationInfo(
+				index, false, false, nil, nil, nil, classID
+			)
+			if id and name then
+				table.insert(result, { id = tostring(id), name = name, icon = icon })
+			end
+		end
+	end
+
+	if #result == 0 and classID and GetSpecializationInfoForClassID then
+		for index = 1, 4 do
+			local id, name, _, icon = GetSpecializationInfoForClassID(classID, index)
+			if id and name then
+				table.insert(result, { id = tostring(id), name = name, icon = icon })
+			end
+		end
+	end
+
+	if #result == 0 then
+		for _, id in ipairs(self.specializationIDs[classKey] or {}) do
+			local specID, name, _, icon
+			if GetSpecializationInfoByID then
+				specID, name, _, icon = GetSpecializationInfoByID(id)
+			elseif GetSpecializationInfoForSpecID then
+				specID, name, _, icon = GetSpecializationInfoForSpecID(id)
+			end
+			if specID and name then
+				table.insert(result, { id = tostring(specID), name = name, icon = icon })
+			end
+		end
+	end
+
+	return result
+end
+
+function RR:GetSelectedClassNeeds()
+	local selected = {}
+	local savedSpecializations = self.db.needs.specializations or {}
+
+	for _, key in ipairs(self.classKeys) do
+		if self.db.needs.classes[key] then
+			local classText = self:GetAnnouncementLabel("CLASS_SHORT_", key, "CLASS_")
+			local specializations = {}
+			local selectedForClass = savedSpecializations[key] or {}
+
+			for _, specialization in ipairs(self:GetClassSpecializations(key)) do
+				if selectedForClass[specialization.id] then
+					table.insert(specializations, specialization.name)
+				end
+			end
+
+			if #specializations > 0 then
+				classText = classText .. " (" .. JoinValues(specializations) .. ")"
+			end
+			table.insert(selected, classText)
+		end
+	end
+
+	return selected
+end
+
 function RR:GetScheduleParts()
 	local schedule = self.db.schedule
 	local days = self:GetSelectedLabels(schedule.days, self.dayKeys, "DAY_")
@@ -250,9 +381,6 @@ function RR:GetScheduleParts()
 	if timeText ~= "" then
 		table.insert(parts, timeText)
 	end
-	if #parts > 0 and strtrim(self.db.profile.timezone or "") ~= "" then
-		table.insert(parts, self.db.profile.timezone)
-	end
 
 	return JoinValues(parts), dayText, startTime, endTime
 end
@@ -261,8 +389,14 @@ function RR:GetTokenValues()
 	local profile = self.db.profile
 	local totalMembers, onlineMembers = self:GetGuildCounts()
 	local schedule, days, startTime, endTime = self:GetScheduleParts()
-	local roles = JoinValues(self:GetSelectedLabels(self.db.needs.roles, self.roleKeys, "ROLE_"))
-	local classes = JoinValues(self:GetSelectedLabels(self.db.needs.classes, self.classKeys, "CLASS_"))
+	local roleLabels = {}
+	for _, key in ipairs(self.roleKeys) do
+		if self.db.needs.roles[key] then
+			table.insert(roleLabels, self:GetAnnouncementLabel("ROLE_SHORT_", key, "ROLE_"))
+		end
+	end
+	local roles = JoinValues(roleLabels)
+	local classes = JoinValues(self:GetSelectedClassNeeds())
 	local activities = JoinValues(
 		self:GetSelectedLabels(self.db.needs.activities, self.activityKeys, "ACTIVITY_")
 	)
@@ -545,6 +679,70 @@ function RR:PrepareSend(isManual)
 	return true
 end
 
+function RR:IsMessageQueueAvailable()
+	return type(MessageQueue) == "table"
+		and (
+			type(MessageQueue.Enqueue) == "function"
+			or type(MessageQueue.SendChatMessage) == "function"
+		)
+end
+
+function RR:OnQueuedLineSent(pending)
+	if self.pendingSend ~= pending or not pending.queued then
+		return
+	end
+
+	table.remove(pending.lines, 1)
+	if #pending.lines == 0 then
+		self:CompleteSend()
+	else
+		self:SetStatus(L.STATUS_QUEUED)
+		self:UpdateAllUI()
+	end
+end
+
+function RR:ExecuteQueuedLine(pending, line)
+	if self.pendingSend ~= pending or not self.db.enabled then
+		return
+	end
+
+	C_ChatInfo.SendChatMessage(line, "CHANNEL", nil, pending.channel.index)
+	self:OnQueuedLineSent(pending)
+end
+
+function RR:QueuePendingSend()
+	local pending = self.pendingSend
+	if not pending or pending.queued or not self:IsMessageQueueAvailable() then
+		return false
+	end
+
+	pending.queued = true
+	self.ready = false
+
+	for _, line in ipairs(pending.lines) do
+		local queuedLine = line
+		if type(MessageQueue.Enqueue) == "function" then
+			MessageQueue.Enqueue(function()
+				RR:ExecuteQueuedLine(pending, queuedLine)
+			end)
+		else
+			MessageQueue.SendChatMessage(
+				queuedLine,
+				"CHANNEL",
+				nil,
+				pending.channel.index,
+				function()
+					RR:OnQueuedLineSent(pending)
+				end
+			)
+		end
+	end
+
+	self:SetStatus(L.STATUS_QUEUED)
+	self:UpdateAllUI()
+	return true
+end
+
 function RR:SendNextLine()
 	if not self.pendingSend then
 		local prepared, errorMessage = self:PrepareSend(true)
@@ -556,6 +754,11 @@ function RR:SendNextLine()
 	end
 
 	local pending = self.pendingSend
+	if pending.queued then
+		self:SetStatus(L.STATUS_QUEUED)
+		return
+	end
+
 	local line = table.remove(pending.lines, 1)
 	if not line then
 		self:CompleteSend()
@@ -617,6 +820,10 @@ function RR:Tick()
 		end
 	end
 
+	if self:QueuePendingSend() then
+		return
+	end
+
 	self.ready = true
 	self:UpdateAllUI()
 end
@@ -629,6 +836,10 @@ function RR:GetStatusText()
 	local pauseReason = self:GetPauseReason()
 	if pauseReason and self:GetNow() >= (self.db.nextDue or 0) then
 		return pauseReason
+	end
+
+	if self.pendingSend and self.pendingSend.queued then
+		return L.STATUS_QUEUED
 	end
 
 	if self.pendingSend or self.ready then

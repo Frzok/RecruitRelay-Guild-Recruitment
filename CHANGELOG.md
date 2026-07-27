@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased
+
+- Added a one-click way to disable scheduled announcements from the send reminder.
+- Clearing announcements now also dismisses any pending message.
+- Rebuilt all addon windows with an original navy-and-amber RecruitRelay theme.
+- Added compact horizontal navigation instead of a reference-style side menu.
+- Guild profile and token palette now open as separate screens instead of
+  overlapping the main window.
+- Returning from a secondary screen preserves the unsaved message draft.
+- Separated the guild profile into details and recruitment tabs.
+- Added a visible class-color recruitment grid with checkboxes.
+- Added a dedicated class and specialization tab with localized specialization names.
+- Recruitment tokens now use compact role and class names such as MDPS, RDPS,
+  Heal, DK, DH, МДД, РДД, Хил, Вар, Пал, and Дракон.
+- Selected specializations are shown after their class in `$classes` and `$needs`.
+- Simplified the token palette by hiding removed profile fields and low-value
+  technical tokens.
+- Added localized hover explanations to every token shown in the palette.
+- Replaced the separate token screen with a compact in-place palette that keeps
+  the announcement visible and stays open while several tokens are inserted.
+- Removed language, time zone, region, age, and loot fields from the profile UI.
+- Fixed status and validation text overlapping the bottom action buttons.
+- Added optional MessageQueue integration for automatic sending on the next
+  normal player input.
+- Kept the dedicated send button as a fallback when MessageQueue is unavailable.
+
 ## 1.1.0 — 2026-07-26
 
 - Added a reusable guild profile.

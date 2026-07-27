@@ -34,6 +34,7 @@ $releaseFiles = @(
     "RecruitRelay.toc",
     "Locale.lua",
     "Core.lua",
+    "Theme.lua",
     "ProfileUI.lua",
     "UI.lua",
     "LICENSE",

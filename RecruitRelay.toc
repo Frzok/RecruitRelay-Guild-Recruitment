@@ -8,8 +8,10 @@
 ## Category-enUS: Guild
 ## Category-ruRU: Гильдия
 ## SavedVariables: RecruitRelayDB
+## OptionalDeps: MessageQueue
 
 Locale.lua
 Core.lua
+Theme.lua
 ProfileUI.lua
 UI.lua
